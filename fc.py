@@ -1,265 +1,197 @@
-"""AirXRP Drone library with reusable OpenMV horizontal-hover support."""
+"""
+functions to use:
+    move_forward()
+    move_backward()
+    move_left()
+    move_right()
+    hover()
+"""
 
-from XRPLib.defaults import *
-from msp import MSP
-from flow_hover import FlowHover
 import time
+
+from msp import MSP
+from hover import FlowHover
 
 
 class Drone:
-    def __init__(self):
-        self.msp = MSP()
 
-        self.roll = 1500
-        self.pitch = 1500
-        self.throttle = 1000
-        self.yaw = 1500
+    def __init__(
+        self,
+        hover_throttle=1500,
+        min_throttle=1000,
+        max_throttle=1700,
+        max_pitch_offset=100,
+        max_roll_offset=100,
+        roll_center=1500,
+        pitch_center=1500,
+        stream_period_ms=20,
+    ):
+        self._msp = MSP()
 
-        self.aux1 = 1000
-        self.aux2 = 1000
-        self.aux3 = 1000
-        self.aux4 = 1000
+        self._min_throttle = int(min_throttle)
+        self._max_throttle = int(max_throttle)
+        self._hover_throttle = int(self._clamp(
+            hover_throttle,
+            self._min_throttle,
+            self._max_throttle,
+        ))
 
-        self.max_pitch_offset = 100
-        self.max_roll_offset = 100
+        self._max_pitch_offset = int(max_pitch_offset)
+        self._max_roll_offset = int(max_roll_offset)
+        self._roll_center = int(roll_center)
+        self._pitch_center = int(pitch_center)
+        self._stream_period_ms = int(stream_period_ms)
 
-        self.min_throttle = 1000
-        self.hover_throttle = 1500
-        self.max_throttle = 1700
-        self.throttle_step = 5
+        self._roll = self._roll_center
+        self._pitch = self._pitch_center
+        self._yaw = 1500
+        self._throttle = self._min_throttle
 
-        self.roll_trim = 0
-        self.pitch_trim = 0
-        self.max_trim = 80
+        # AUX placeholders. Betaflight decides which MSP channels are used
+        # through msp_override_channels_mask.
+        self._aux1 = 1000
+        self._aux2 = 1000
+        self._aux3 = 1000
+        self._aux4 = 1000
 
-        self.stream_delay_ms = 20
         self._flow_hover = None
 
-    def clamp(self, value, min_value, max_value):
-        if value < min_value:
-            return min_value
-        if value > max_value:
-            return max_value
-        return value
-
-    def send_current_channels(self):
-        # Correct MSP RC order:
-        # roll, pitch, yaw, throttle, aux1, aux2, aux3, aux4
-        channels = [
-            self.roll,
-            self.pitch,
-            self.yaw,
-            self.throttle,
-            self.aux1,
-            self.aux2,
-            self.aux3,
-            self.aux4,
-        ]
-        self.msp.send_raw_rc(channels)
-
-    def stream_for(self, seconds):
-        start = time.ticks_ms()
-        while time.ticks_diff(time.ticks_ms(), start) < seconds * 1000:
-            self.send_current_channels()
-            time.sleep_ms(self.stream_delay_ms)
-
-    def set_pitch_trim(self, trim):
-        self.pitch_trim = int(self.clamp(
-            trim,
-            -self.max_trim,
-            self.max_trim,
-        ))
-
-    def set_roll_trim(self, trim):
-        self.roll_trim = int(self.clamp(
-            trim,
-            -self.max_trim,
-            self.max_trim,
-        ))
-
-    def set_pitch_speed(self, speed):
-        speed = self.clamp(speed, -1.0, 1.0)
-        offset = int(speed * self.max_pitch_offset)
-        self.pitch = 1500 + self.pitch_trim + offset
-        self.send_current_channels()
-
-    def set_roll_speed(self, speed):
-        speed = self.clamp(speed, -1.0, 1.0)
-        offset = int(speed * self.max_roll_offset)
-        self.roll = 1500 + self.roll_trim + offset
-        self.send_current_channels()
-
-    def set_hover_throttle(self, throttle):
-        self.hover_throttle = int(self.clamp(
-            throttle,
-            self.min_throttle,
-            self.max_throttle,
-        ))
-
-    def set_throttle(self, throttle):
-        self.throttle = int(self.clamp(
-            throttle,
-            self.min_throttle,
-            self.max_throttle,
-        ))
-        self.send_current_channels()
-
-    def ramp_throttle_to(self, target_throttle, step_delay_ms=50):
-        target_throttle = int(self.clamp(
-            target_throttle,
-            self.min_throttle,
-            self.max_throttle,
-        ))
-
-        while self.throttle != target_throttle:
-            if self.throttle < target_throttle:
-                self.throttle += self.throttle_step
-                if self.throttle > target_throttle:
-                    self.throttle = target_throttle
-            else:
-                self.throttle -= self.throttle_step
-                if self.throttle < target_throttle:
-                    self.throttle = target_throttle
-
-            self.send_current_channels()
-            time.sleep_ms(step_delay_ms)
-
-    def takeoff(
-        self,
-        throttle=None,
-        duration=1.5,
-        takeoff_throttle=None,
-        punch_duration=0.35,
-    ):
-        if throttle is None:
-            throttle = self.hover_throttle
-        if takeoff_throttle is None:
-            takeoff_throttle = throttle + 80
-
-        throttle = int(self.clamp(
-            throttle,
-            self.min_throttle,
-            self.max_throttle,
-        ))
-        takeoff_throttle = int(self.clamp(
-            takeoff_throttle,
-            self.min_throttle,
-            self.max_throttle,
-        ))
-
-        self.enable_angle_mode()
-        self.stop_motion()
-        self.ramp_throttle_to(takeoff_throttle)
-        self.stream_for(punch_duration)
-        self.ramp_throttle_to(throttle)
-        self.stream_for(duration)
-
-    def land(self):
-        self.stop_motion()
-        self.ramp_throttle_to(self.min_throttle)
+    # ------------------------------------------------------------------
+    # movement function to use
+    # ------------------------------------------------------------------
 
     def move_forward(self, speed=0.3, duration=1.0, throttle=None):
-        if throttle is None:
-            throttle = self.hover_throttle
-        self.set_throttle(throttle)
-        self.set_pitch_speed(abs(speed))
-        self.stream_for(duration)
-        self.stop_motion()
+        """Move forward for ``duration`` seconds, then center motion."""
+        self._move(
+            pitch_speed=abs(speed),
+            roll_speed=0.0,
+            duration=duration,
+            throttle=throttle,
+        )
 
     def move_backward(self, speed=0.3, duration=1.0, throttle=None):
-        if throttle is None:
-            throttle = self.hover_throttle
-        self.set_throttle(throttle)
-        self.set_pitch_speed(-abs(speed))
-        self.stream_for(duration)
-        self.stop_motion()
-
-    def move_right(self, speed=0.3, duration=1.0, throttle=None):
-        if throttle is None:
-            throttle = self.hover_throttle
-        self.set_throttle(throttle)
-        self.set_roll_speed(abs(speed))
-        self.stream_for(duration)
-        self.stop_motion()
+        """Move backward for ``duration`` seconds, then center motion."""
+        self._move(
+            pitch_speed=-abs(speed),
+            roll_speed=0.0,
+            duration=duration,
+            throttle=throttle,
+        )
 
     def move_left(self, speed=0.3, duration=1.0, throttle=None):
-        if throttle is None:
-            throttle = self.hover_throttle
-        self.set_throttle(throttle)
-        self.set_roll_speed(-abs(speed))
-        self.stream_for(duration)
-        self.stop_motion()
+        """Move left for ``duration`` seconds, then center motion."""
+        self._move(
+            pitch_speed=0.0,
+            roll_speed=-abs(speed),
+            duration=duration,
+            throttle=throttle,
+        )
 
-    def hover(self, duration=5.0, throttle=None, print_status=True):
+    def move_right(self, speed=0.3, duration=1.0, throttle=None):
+        """Move right for ``duration`` seconds, then center motion."""
+        self._move(
+            pitch_speed=0.0,
+            roll_speed=abs(speed),
+            duration=duration,
+            throttle=throttle,
+        )
+
+    def hover(self, duration=5.0, throttle=None, print_status=False):
+        """Hold horizontal X/Y position using OpenMV optical flow.
+
+        This is not altitude hold. When throttle is included in Betaflight's
+        MSP override mask, ``throttle`` is a fixed throttle command. Otherwise,
+        the pilot continues to control throttle.
         """
-        Hold horizontal position using OpenMV optical flow.
-
-        This is blocking, like move_forward(). It holds X/Y drift only;
-        it does not measure or regulate altitude.
-
-        Betaflight override masks:
-          3  = XRP roll/pitch, pilot throttle
-          11 = XRP roll/pitch/throttle
-        """
         if throttle is None:
-            throttle = self.hover_throttle
+            throttle = self._hover_throttle
 
-        self.throttle = int(self.clamp(
-            throttle,
-            self.min_throttle,
-            self.max_throttle,
-        ))
-
-        self.enable_angle_mode()
-        self.stop_motion()
+        self._set_throttle(throttle)
+        self._set_roll_pitch(self._roll_center, self._pitch_center)
 
         if self._flow_hover is None:
             self._flow_hover = FlowHover(self)
 
         return self._flow_hover.run(
             duration=duration,
-            throttle=self.throttle,
             print_status=print_status,
         )
 
-    def stop_motion(self):
-        self.roll = 1500 + self.roll_trim
-        self.pitch = 1500 + self.pitch_trim
-        self.yaw = 1500
-        self.send_current_channels()
+    def stop(self, duration=0.20):
+        """Stop horizontal motion while keeping the present throttle.
 
-    def hold_attitude(self, duration=1.0):
-        self.stop_motion()
-        self.stream_for(duration)
+        The neutral command is streamed briefly so Betaflight receives more
+        than one centered RC frame. This does not disarm or reduce throttle.
+        """
+        self._set_roll_pitch(self._roll_center, self._pitch_center)
+        self._yaw = 1500
+        self._stream_for(duration)
 
-    def hold_neutral(self, duration=1.0):
-        self.hold_attitude(duration)
+    # ------------------------------------------------------------------
+    # Internal helpers used by the movement and hover controllers
+    # ------------------------------------------------------------------
 
-    def stop_all(self):
-        self.roll = 1500
-        self.pitch = 1500
-        self.yaw = 1500
-        self.throttle = self.min_throttle
-        self.send_current_channels()
+    @staticmethod
+    def _clamp(value, minimum, maximum):
+        return max(minimum, min(maximum, value))
 
-    def get_aux2(self):
+    def _set_throttle(self, throttle):
+        self._throttle = int(self._clamp(
+            throttle,
+            self._min_throttle,
+            self._max_throttle,
+        ))
+
+    def _set_roll_pitch(self, roll, pitch):
+        self._roll = int(round(self._clamp(roll, 1000, 2000)))
+        self._pitch = int(round(self._clamp(pitch, 1000, 2000)))
+
+    def _send(self):
+        # MSP_SET_RAW_RC channel order:
+        # roll, pitch, yaw, throttle, aux1, aux2, aux3, aux4
+        self._msp.send_raw_rc([
+            self._roll,
+            self._pitch,
+            self._yaw,
+            self._throttle,
+            self._aux1,
+            self._aux2,
+            self._aux3,
+            self._aux4,
+        ])
+
+    def _stream_for(self, duration):
+        if duration is None or duration < 0:
+            raise ValueError("duration must be zero or greater")
+
+        start_ms = time.ticks_ms()
+
+        while time.ticks_diff(time.ticks_ms(), start_ms) < duration * 1000:
+            self._send()
+            time.sleep_ms(self._stream_period_ms)
+
+    def _move(self, pitch_speed, roll_speed, duration, throttle):
+        if duration is None or duration <= 0:
+            raise ValueError("duration must be greater than zero")
+
+        if throttle is None:
+            throttle = self._hover_throttle
+
+        pitch_speed = self._clamp(pitch_speed, -1.0, 1.0)
+        roll_speed = self._clamp(roll_speed, -1.0, 1.0)
+
+        pitch = self._pitch_center + int(
+            pitch_speed * self._max_pitch_offset
+        )
+        roll = self._roll_center + int(
+            roll_speed * self._max_roll_offset
+        )
+
+        self._set_throttle(throttle)
+        self._set_roll_pitch(roll, pitch)
+        self._yaw = 1500
+
         try:
-            channels = self.msp.get_rc()
-        except Exception:
-            return None
-        if channels is None or len(channels) < 6:
-            return None
-        return channels[5]
-
-    def get_aux3(self):
-        try:
-            channels = self.msp.get_rc()
-        except Exception:
-            return None
-        if channels is None or len(channels) < 7:
-            return None
-        return channels[6]
-
-    def enable_angle_mode(self):
-        self.aux1 = 2000
-        self.send_current_channels()
+            self._stream_for(duration)
+        finally:
+            self.stop()
