@@ -1,30 +1,26 @@
-# Spark Resources Metrics Plugin
+# AirXRP
 
 <br/>
 <p align="center">
     <a href="https://github.com/dutrevis/spark-resources-metrics-plugin" target="_blank">
-        <img width="20%" src="./docs/img/spark_resources_metrics_logo.svg" alt="Spark Resrouces Metrics Plugin logo">
+        <img width="20%" src="./docs/img/airxrp_logo.svg" alt="AirXRP logo">
     </a>
 </p>
 
-`Spark Resources Metrics plugin` is an Apache Spark plugin that registers metrics onto the Apache Spark metrics system, that will sink values collected from operational system's resources, aiming to cover metrics that the Spark metrics system does not provide, like the Ganglia monitoring system metrics.
-
-
-| Latest Version | Build | Coverage |
-| :------------: | :---: | :------: |
-| [![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/dutrevis/spark-resources-metrics-plugin.svg?color=blue&logo=github)](https://github.com/dutrevis/spark-resources-metrics-plugin/tags) | [![GitHub Workflow Status (main branch)](https://github.com/dutrevis/spark-resources-metrics-plugin/actions/workflows/scala.yml/badge.svg)](https://github.com/dutrevis/spark-resources-metrics-plugin/actions/workflows/scala.yml) | [![Codecov Coverage Report (main branch)](https://codecov.io/github/dutrevis/spark-resources-metrics-plugin/graph/badge.svg)](https://codecov.io/github/dutrevis/spark-resources-metrics-plugin) |
+AirXRP is an educational quadcopter platform built around the SparkFun XRP Controller and Betaflight. The goal is to give students a simple Python interface for programming autonomous drone behaviors without requiring them to develop a flight-control system from scratch.
 
 ## Table of Contents
 
 - [User Guide](#user-guide)
   - [Preparation](#preparation)
+    - [Hardware](#harware)
   - [Installation](#installation)
     - [Package](#package)
     - [Classes](#classes)
   - [Usage](#usage)
     - [Current plugin classes](#current-plugin-classes)
   - [Example instrumentation: Graphite sink](#example-instrumentation-graphite-sink)
-- [Developer Guide](#developer-guide)
+- [System Architecture](#developer-guide)
   - [Stack used](#stack-used)
   - [Current class diagram](#current-class-diagram)
 - [Prior art](#prior-art)
@@ -42,12 +38,8 @@
 
 ### Preparation
 
-The `Spark Resources Metrics plugin` is intended to be used together with the native [Spark metrics system (click for details)](https://spark.apache.org/docs/latest/monitoring.html#metrics). In order to properly show the metric values collected by this plugin, the Spark metrics system has to be set to report metrics on the plugin's supported Spark components, which currently are:
-
-- `driver`
-- `executor`
-
-This is done in the sink configuration properties of the Spark metrics system. Usually to cover the supported components, you may set the `component` configuration detail to "all components" (`*`) in the property names. *e.g.*: `spark.metrics.conf.*.sink.graphite.class`
+#### Hardware
+Before starting on this software guide, make sure to follow: <a href="[https://github.com/dutrevis/spark-resources-metrics-plugin](https://www.printables.com/model/1707431-airxrp-alpha-xrp-powered-3d-printed-quadcopter)"</a> for the hardware assembly of the AirXRP.
 
 ### Installation
 
