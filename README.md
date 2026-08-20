@@ -126,16 +126,18 @@ Example:
 from fc import Drone
 
 drone = Drone()
-    
-drone.move_forward(
-    speed=0.3,
-    duration=1.0,
-)
 
-drone.move_backward(
-    speed=0.3,
-    duration=1.0,
-)
+# Pilot manually raises the drone to the desired altitude.
+
+# Hold the drone's horizontal X/Y position for 5 seconds.
+# Pilot continues controlling throttle.
+drone.hover(duration=5)
+
+# Move forward for 1 second.
+drone.move_forward(speed=0.3, duration=1)
+
+# Hold horizontal position again.
+drone.hover(duration=5)
 ```
 
 ### GPS
