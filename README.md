@@ -3,7 +3,7 @@
 <br/>
 <p align="center">
     <a href="https://github.com/dutrevis/spark-resources-metrics-plugin" target="_blank">
-        <img width="20%" src="./docs/img/airxrp_logo.svg" alt="AirXRP logo">
+        <img width="20%" src="./AirXRP LGOG.png" alt="AirXRP logo">
     </a>
 </p>
 
