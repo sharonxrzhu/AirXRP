@@ -22,8 +22,10 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
   - [2.1 - Drone API](#drone-api)
   - [2.2 - GPS](#gps)
 - [Import Dependencies Diagram](#import-dependencies-diagram)
-- [Developer Guide](#developer-guide)
 - [Debug](#debug)
+  - [No response from msp override](#no-response-from-msp-override)
+  - [Openmv camera not found at 0x42](#openmv-camera-not-found-at-0x42)
+- [Developer Guide](#developer-guide)
 
 ## Prelude - Hardware
 Before starting on this software guide, make sure to follow: https://www.printables.com/model/1707431-airxrp-alpha-xrp-powered-3d-printed-quadcopter for the hardware assembly of the AirXRP.
