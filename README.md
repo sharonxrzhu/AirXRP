@@ -12,22 +12,19 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
 ## Table of Contents
 - [Prelude - Hardware](#prelude---hardware)
 - [Chapter 1 - Preparation](#chapter-1---preparation)
-  - [Section 1.1 - Transmitter setup](transmitter-setup)
-  - [Section 1.2 - Betaflight setup](#betaflight-setup)
-  - [Section 1.3 - XRP Files](#xrp-files)
-  - [Section 1.4 - OpenMV Camera setup](openmv-camera-setup)
-  - [Section 1.5 - MSP Override Test](#msp-override-test)
-  - [Section 1.6 - Camera Axis Calibration](#camera-axis-calibration)
+  - [1.1 - Transmitter setup](transmitter-setup)
+  - [1.2 - Betaflight setup](#betaflight-setup)
+  - [1.3 - XRP Files](#xrp-files)
+  - [1.4 - OpenMV Camera setup](openmv-camera-setup)
+  - [1.5 - MSP Override Test](#msp-override-test)
+  - [1.6 - Camera Axis Calibration](#camera-axis-calibration)
 - [Chapter 2 - Functions to Use](#chapter-2---functions-to-use)
-  - [Section 2.1 - Drone API](#drone-api)
-  - [Section 2.2 - GPS](#gps)
+  - [2.1 - Drone API](#drone-api)
+  - [2.2 - GPS](#gps)
 - [System Architecture](#developer-guide)
   - [Stack used](#stack-used)
   - [Current class diagram](#current-class-diagram)
 - [Developer-Guide](#prior-art)
-- [Next steps](#next-steps)
-  - [Use it on different Spark environments](#use-it-on-different-spark-environments)
-  - [Support](#support)
 
 ## Prelude - Hardware
 Before starting on this software guide, make sure to follow: https://www.printables.com/model/1707431-airxrp-alpha-xrp-powered-3d-printed-quadcopter for the hardware assembly of the AirXRP.
@@ -129,17 +126,16 @@ Example:
 ```python
 from fc import Drone
 
-drone = Drone(
-    hover_throttle=1500,
-)
+drone = Drone()
     
 drone.move_forward(
     speed=0.3,
     duration=1.0,
 )
-    
-drone.hover(
-    duration=5.0,
+
+drone.move_backward(
+    speed=0.3,
+    duration=1.0,
 )
 ```
 
@@ -176,14 +172,3 @@ while True:
 
 
 ## Next steps
-
-### Use it on different Spark environments
-
-- :closed_book: Use within Databricks clusters to cover [Ganglia's outage](https://docs.databricks.com/en/compute/clusters-manage.html#ganglia-metrics)!
-- :blue_book: Use with CERN's [Spark-Dashboard](https://github.com/cerndb/spark-dashboard)
-
-### Support
-
-- ⭐️ Star [`Spark Resources Metrics Plugin` on GitHub](https://github.com/dutrevis/spark-resources-metrics-plugin)
-- :m: Follow me (@dutrevis) on [Medium](https://medium.com/@dutrevis)
-- 🐙 Follow me (@dutrevis) on [GitHub](https://github.com/dutrevis)
