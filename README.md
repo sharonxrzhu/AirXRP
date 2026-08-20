@@ -12,10 +12,10 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
 ## Table of Contents
 - [Prelude - Hardware](#prelude---hardware)
 - [Chapter 1 - Preparation](#chapter-1---preparation)
-  - [1.1 - Transmitter setup](transmitter-setup)
+  - [1.1 - Transmitter setup](#transmitter-setup)
   - [1.2 - Betaflight setup](#betaflight-setup)
   - [1.3 - XRP Files](#xrp-files)
-  - [1.4 - OpenMV Camera setup](openmv-camera-setup)
+  - [1.4 - OpenMV Camera setup](#openmv-camera-setup)
   - [1.5 - MSP Override Test](#msp-override-test)
   - [1.6 - Camera Axis Calibration](#camera-axis-calibration)
 - [Chapter 2 - Functions to Use](#chapter-2---functions-to-use)
