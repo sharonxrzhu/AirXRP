@@ -10,17 +10,21 @@
 AirXRP is an educational quadcopter platform built around the SparkFun XRP Controller and Betaflight. The goal is to give students a simple Python interface for programming autonomous drone behaviors without requiring them to develop a flight-control system from scratch.
 
 ## Table of Contents
-- [Prelude-Hardware](#hardware)
-- [User Guide](#user-guide)
-  - [Drone API](#drone-api)
-  - [Camera Axis Calibration](#cam-calibration)
-  - [Usage](#usage)
-    - [Current plugin classes](#current-plugin-classes)
-  - [Example instrumentation: Graphite sink](#example-instrumentation-graphite-sink)
+- [Prelude - Hardware](#prelude---hardware)
+- [Chapter 1 - Preparation](#chapter-1---preparation)
+  - [Section 1.1 - Transmitter setup](transmitter-setup)
+  - [Section 1.2 - Betaflight setup](#betaflight-setup)
+  - [Section 1.3 - XRP Files](#xrp-files)
+  - [Section 1.4 - OpenMV Camera setup](openmv-camera-setup)
+  - [Section 1.5 - MSP Override Test](#msp-override-test)
+  - [Section 1.6 - Camera Axis Calibration](#camera-axis-calibration)
+- [Chapter 2 - Functions to Use](#chapter-2---functions-to-use)
+  - [Section 2.1 - Drone API](#drone-api)
+  - [Section 2.2 - GPS](#gps)
 - [System Architecture](#developer-guide)
   - [Stack used](#stack-used)
   - [Current class diagram](#current-class-diagram)
-- [Prior art](#prior-art)
+- [Developer-Guide](#prior-art)
 - [Next steps](#next-steps)
   - [Use it on different Spark environments](#use-it-on-different-spark-environments)
   - [Support](#support)
@@ -28,14 +32,89 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
 ## Prelude - Hardware
 Before starting on this software guide, make sure to follow: https://www.printables.com/model/1707431-airxrp-alpha-xrp-powered-3d-printed-quadcopter for the hardware assembly of the AirXRP.
 
-## Software User Guide
+## Chapter 1 - Preparation
 
-### Step 1: MSP Override Test
-XRP controls the drone through Betaflight MSP Override. We want to make sure the drone is setup properly to communicate between the XRP the flight controller.
+### Transmitter setup
+Turn on the transmitter
 
-Run msp_test.py and if you get 
+1. long hold "OK" button until you see MENU screen
+2. click "OK" to go into SYSTEM screen
+3. click "DOWN" until reaching "Aux switches", click "OK"
+4. Turn all switches On by clicking "UP" and "OK" to move to the next switch, when reaches "Ch", click "UP" until Ch:10. **Long hold "Cancel" button to save everything**
+5. Click "Cancel" to go back to MENU, and click "UP" and "OK" to go into FUNCTIONS screen
+6. Click "DOWN" until reaching "Aux, channels", click "OK"
+7. Click "OK" until reaching Channel 7, while arrows are point at Channel 7 and Source, click "DOWN" until Source is SwA, click "OK". Repeat for Channel 8, 9 and 10, each corresponding to SwB, SwC, SwD, respectively. **Long hold "Cancel" button to save everything**
 
+### Betaflight setup
+Open Betaflight app https://app.betaflight.com/ and connect to the flight controller through the on board usb-c port
 
+1. In Sensors tab, change Pitch degrees from 0 to 180 under Board Alignment. Click Calibrate. 
+2. In Ports tab, enable Configuration/MSP for UART4 and Serial RX for UART7, click Save and Reboot in the lower right hand side corner.
+3. In Receiver tab, for serial receiver provider, change CRSF to IBUS, click Save in the lower right hand side corner.
+
+Checkpoint: Turning on the transmitter and the drone, you should see roll, pitch, yaw, throttle, and the auxiliary channels change when moving the sticks and switches on your transmitter.
+
+4. In CLI tab, type in "set msp_override_channels_mask = [number]" where [number] is what controls you would like the xrp to control when in msp override mode. Default full control of roll, pitch, throttle, and yaw is 15. For more information on what number to use, check out [Developer Guide](#developer-guide).
+5. In modes tab, enable ARM with an AUX and Min Max of your choice, enable ANGLE if you would like to fly in ANGLE mode, and after setting a number for msp_override_channels_mask, enable MSP OVERRIDE with an AUX and MIN MAX of your choice. 
+6. In PID Tuning, change Motor Output Limit from 100 to 66.
+7. In Motors Tab, click on Reorder motors and then motor direction and follow the instructions to setup motors. Make sure to plug in the battery for the motors to run.
+
+Checkpoint: The drone should now be capable of manual flying.
+
+### XRP Files
+
+Make sure your XRP contains
+- airxrp_openmv_axis_calibrate.py
+- fc.py
+- gps.py
+- hover.py
+- msp.py
+- msp_test.py
+
+### OpenMV Camera setup
+
+Download OpenMV IDE: https://openmv.io/pages/download?srsltid=AfmBOoorWgGWSutgBUVmrJHAUmXsZcqh9ppmNFL8Xp0shk191VoGpuC1
+
+Save mavlink_opticalflow_openmw_ide.py to main by
+1. connect OpenMV camera to the OpenMV camera ide through on board usb-c port
+2. go to file explorer and look for OpenMV camera disk
+3. open OpenMV camera disk and open the file "main"
+4. copy mavlink_opticalflow_openmw_ide.py into the file "main" and save the file
+
+### MSP Override Test
+XRP controls the drone through Betaflight MSP Override. This communication happens through msp.py. We want to make sure the drone is setup properly to communicate between the XRP the flight controller.
+
+**Run msp_test.py** 
+
+If you receive: 
+"SUCCESS: MSP communication working both ways" 
+This means your hardware setup is correct and ready to go
+
+If you receive:
+"No response"
+Make sure all wires are plugged into the right ports and flight controller is powered on
+Check out [Debug](#debug)
+
+### Camera Axis Calibration
+The OpenMV may be mounted in different orientations, so AirXRP does not assume camera X/Y correspond directly to aircraft roll/pitch.
+Before hover() is used, **run airxrp_openmv_axis_calibrate.py**
+
+The calibration procedure is:
+Hold the drone level and still.
+Move the entire aircraft approximately 10–20 cm to its physical right.
+Return it and hold still.
+Move the aircraft approximately 10–20 cm forward.
+Keep the aircraft level and avoid yawing it.
+The script determines the transformation from camera coordinates into aircraft body coordinates and writes:
+/openmv_axis_calibration.txt 
+
+> :exclamation: **Make sure /openmv_axis_calibration.txt is saved in the XRP before running hover()**
+
+The calibration only needs to be repeated if the camera mounting orientation changes.
+
+## Chapter 2 - Functions to Use
+
+Create a new file (ex: student.py) as the main file to work with.
 
 ### Drone API
 The Drone class provides the student-facing interface. It can be found in fc.py.
@@ -48,7 +127,7 @@ Current movement functions include:
 
 Example:
 ```python
-from drone import Drone
+from fc import Drone
 
 drone = Drone(
     hover_throttle=1500,
@@ -64,298 +143,37 @@ drone.hover(
 )
 ```
 
-### Camera Axis Calibration
-The OpenMV may be mounted in different orientations, so AirXRP does not assume camera X/Y correspond directly to aircraft roll/pitch.
-Before hover() is used, run: airxrp_openmv_axis_calibrate.py
+### GPS
+AirXRP also supports a GPS module using gps.py
 
-The calibration procedure is:
-Hold the drone level and still.
-Move the entire aircraft approximately 10–20 cm to its physical right.
-Return it and hold still.
-Move the aircraft approximately 10–20 cm forward.
-Keep the aircraft level and avoid yawing it.
-The script determines the transformation from camera coordinates into aircraft body coordinates and writes:
-/openmv_axis_calibration.txt 
+GPS is intended primarily for larger-scale position and waypoint behaviors, while OpenMV optical flow provides faster local motion correction near the ground.
 
-**Make sure /openmv_axis_calibration.txt is saved in the XRP before running hover()**
+Current GPS functions include:
+- get_location() — returns latitude, longitude, and altitude
+- set_origin() — saves the current GPS location as x = 0, y = 0, z = 0
+- get_xyz() — returns position in meters relative to the saved origin
 
-The file contains values such as:
-inverse_00
-inverse_01
-inverse_10
-inverse_11
-valid=1
-
-These values convert camera motion into:
-positive body_right
-positive body_forward
-
-The calibration only needs to be repeated if the camera mounting orientation changes.
-
-
-
-#### Package
-
-Choose your preferred method to include `Spark Resources Metrics plugin` package in your Spark environment:
-
-> :warning: **Attention:** switch to the desired Scala version (**2.12** or **2.13**) when using the links or JARs names.
-
-<details>
-  <summary>1. Adding a new property to the Spark configuration file (click to expand)</summary>
-
-  You may choose to edit the `spark-default.conf` file, adding the following property and respective value, which will download the package through Maven Central:
-
-  ```properties
-  spark.jars.packages io.github.dutrevis:spark-resources-metrics-plugin_2.12:0.1
-  ```
-
-</details>
-
-<details>
-  <summary>2. Using a local package manager to download and copy (click to expand)</summary>
-
-  You may opt to use a local package manager like Maven to download and copy the package and its dependencies into your local Spark JARs folder:
-
-  ```sh
-  mvn dependency:get -Dartifact="io.github.dutrevis:spark-resources-metrics-plugin_2.12:0.1"
-  mvn dependency:copy -Dartifact="io.github.dutrevis:spark-resources-metrics-plugin_2.12:0.1" -DoutputDirectory="$SPARK_HOME/jars"
-  ```
-
-</details>
-
-<details>
-  <summary>3. Adding a flag to your CLI Spark call (click to expand)</summary>
-
-  You may choose to add one of these flags with property-value pairs to your CLI Spark call:
-
-   - External download - choose one (Internet access required):
-
-     `--packages io.github.dutrevis:spark-resources-metrics-plugin_2.12:0.1`
-
-     `--jars https://s01.oss.sonatype.org/content/repositories/releases/io/github/dutrevis/spark-resources-metrics-plugin_2.12/0.1/spark-resources-metrics-plugin_2.12-0.1.jar`
-
-   - Local deployments - choose one (prior JAR download required):
-
-     `--conf spark.driver.extraClassPath=/path/to/spark-resources-metrics-plugin_2.12-0.1.jar`
-
-     `--jars /path/to/spark-resources-metrics-plugin_2.12-0.1.jar`
-
-  > :bulb: **Tip:** the `--jars` CLI option can be used in YARN backend to make the plugin JAR available to both executors and cluster-mode drivers.
-
-</details>
-
-#### Classes
-
-The plugin is composed of classes that, once activated in Apache Spark, register a group of metrics related to their distinct resources into the native Spark metrics system.
-
-After the package is installed, these classes may be activated by being declared in the `spark.plugins` property.
-
-<details>
-  <summary>1. You may add the property and its value to the "spark-default.conf" file (click to expand)</summary>
-
-  ```properties
-  spark.plugins io.github.dutrevis.CPUMetrics,io.github.dutrevis.MemoryMetrics
-  ```
-
-</details>
-
-<details>
-  <summary>2. You may add a flag (with its property-value pair) to your CLI Spark call (click to expand)</summary>
-
-  ```sh
-  --conf "spark.plugins"="io.github.dutrevis.CPUMetrics,io.github.dutrevis.MemoryMetrics"
-  ```
-
-</details>
-
-<details>
-  <summary>3. You may add a config to the Spark Context created with PySpark or Scala (click to expand)</summary>
-
-  ```python
-  .config("spark.plugins", "io.github.dutrevis.CPUMetrics,io.github.dutrevis.MemoryMetrics")
-  ```
-
-</details><br>
-
-> :memo: **Note:** as seen on [Spark docs](https://spark.apache.org/docs/latest/configuration.html#dynamically-loading-spark-properties), properties set programmatically on the Spark Context take highest precedence, then flags passed through CLI calls like `spark-submit` or `spark-shell`, then options in the `spark-defaults.conf` file.
-
-### Usage
-
-Once configured and registered onto the Spark metrics system, sinked metrics will be found in the following naming format:
-
-`{SparkComponent}.plugin.io.github.dutrevis.{ClassName}.{Metric}`
-
-#### Current plugin classes
-
-Each class registers a group of metrics collected. For details of each metric, consult its specific `collect` method inside its class.
-**The current available plugin classes are meant to be used when Spark is running in clusters with standalone, Mesos or YARN resource managers.**
-
-[MemoryMetrics](./src//main/scala/io/github/dutrevis/MemoryMetrics.scala): collects memory resource metrics from a unix-based operating system. Memory metrics are obtained from the numbers of each line of the `/proc/meminfo` file, available at the proc pseudo-filesystem of unix-based operating systems. The file has statistics about memory usage on the system, arranged in lines consisted of a parameter name, followed by a colon, the value of the parameter, and an option unit of measurement.
-
-> :memo: **Notes:**
-> - While the `/proc/meminfo` file shows kilobytes (kB; 1 kB equals 1000 B), its unit is actually kibibytes (KiB; 1 KiB equals 1024 B). This imprecision is known, but is not corrected due to legacy concerns.
-> - Many fields have been present since at least Linux 2.6.0, but most of the other fields are available at specific Linux versions (as noted in each method docstring) or are displayed only if the kernel was configured with specific options. If these fields are not found, the metrics won't be registered onto Dropwizard's metric system.
-
-**Metrics registered**:
-  - `TotalMemory`
-  - `FreeMemory`
-  - `UsedMemory`
-  - `SharedMemory`
-  - `BufferMemory`
-  - `TotalSwapMemory`
-  - `FreeSwapMemory`
-  - `CachedSwapMemory`
-  - `UsedSwapMemory`
-
-[CPUMetrics](./src//main/scala/io/github/dutrevis/CPUMetrics.scala): collects CPU resource metrics from a unix-based operating system. CPU metrics are obtained from the numbers of the first line of the `/proc/stat` file, available at the proc pseudo-filesystem of unix-based operating systems. These numbers identify the amount of time the CPU has spent performing different kinds of work, arranged in columns at the following order: "cpu_user", "cpu_nice", "cpu_system", "cpu_idle", "cpu_iowait", "cpu_irq" and "cpu_softirq".
-
-> :memo: **Notes:**
-> - All of the numbers retrieved are aggregates since the system first booted.
-> - Time units are in USER_HZ or Jiffies (typically hundredths of a second).
-> - Values for "cpu_steal", "cpu_guest" and "cpu_guest_nice", available at spectific Linux versions, are not parsed from the file.
-
-**Metrics registered**:
-  - `UserCPU`
-  - `NiceCPU`
-  - `SystemCPU`
-  - `IdleCPU`
-  - `WaitCPU`
-
-### Example instrumentation: Graphite sink
-
-Say you will use the Graphite sink to report metrics and you wish to monitor the memory usage of your Spark cluster, then you want to instrument your Spark deployment using `Spark Resources Metrics plugin`'s class `MemoryMetrics`.
-
-First, you have to decide how to [install `Spark Resources Metrics plugin`](#installation).
-
-For environments with customizable configurations, like container images, you may consider adding an installation step with Maven or adding a custom Spark configuration file, such as the example below:
-
-<details>
-  <summary>Spark configuration file example</summary>
-
-```properties
-spark.jars.packages                       io.github.dutrevis:spark-resources-metrics-plugin_2.12:0.1
-spark.plugins.defaultList                 io.github.dutrevis.MemoryMetrics
-spark.metrics.conf.*.sink.graphite.class  org.apache.spark.metrics.sink.GraphiteSink
-spark.metrics.conf.*.sink.graphite.host   your-graphite-host.com
-spark.metrics.conf.*.sink.graphite.port   2003
-spark.metrics.conf.*.sink.graphite.period 5
-spark.metrics.conf.*.sink.graphite.unit   seconds
-```
-
-</details><br>
-
-For environments with static configurations, like ever-standing or shared clusters, consider adding the properties into the Spark CLI call or into the Spark job itself, such as shown in the examples below:
-
-<details>
-  <summary>CLI example</summary>
-
-```sh
-bin/spark-shell  --master yarn \
-  --packages io.github.dutrevis:spark-resources-metrics-plugin_2.12:0.1 \
-  --conf "spark.plugins"="io.github.dutrevis.MemoryMetrics" \
-  --conf "spark.metrics.conf.*.sink.graphite.class"="org.apache.spark.metrics.sink.GraphiteSink"   \
-  --conf "spark.metrics.conf.*.sink.graphite.host"="your-graphite-host.com" \
-  --conf "spark.metrics.conf.*.sink.graphite.port"=2003 \
-  --conf "spark.metrics.conf.*.sink.graphite.period"=5 \
-  --conf "spark.metrics.conf.*.sink.graphite.unit"=seconds
-```
-
-</details>
-
-<details>
-  <summary>PySpark example</summary>
-
+Example:
 ```python
-from pyspark.sql import SparkSession
+from gps import AirXRPGPS
 
-spark = (SparkSession.builder.appName("Instrumented app").master("yarn")
-      .config("spark.jars.packages", "io.github.dutrevis:spark-resources-metrics-plugin_2.12:0.1")
-      .config("spark.plugins", "io.github.dutrevis.MemoryMetrics")
-      .config("spark.metrics.conf.*.sink.graphite.class", "org.apache.spark.metrics.sink.GraphiteSink")
-      .config("spark.metrics.conf.*.sink.graphite.host", "your-graphite-host.com")
-      .config("spark.metrics.conf.*.sink.graphite.port", 2003)
-      .config("spark.metrics.conf.*.sink.graphite.period", 5)
-      .config("spark.metrics.conf.*.sink.graphite.unit", "seconds")
-      .getOrCreate()
-    )
+gps = AirXRPGPS()
+
+gps.set_origin()
+
+while True:
+    position = gps.get_xyz()
+
+    if position:
+        print("X:", position["x"], "m")
+        print("Y:", position["y"], "m")
+        print("Z:", position["z"], "m")
+    else:
+        print("No GPS position")
 ```
 
-</details><br>
+## System Architecture
 
-Then run your Spark job and check the output of a Graphite plaintext protocol reader or exporter to find the metrics.
-
-## Developer Guide
-
-### Stack used
-
-The plugin was developed using the technologies below, but feel free to try other solutions when contributing!
-
-|Developed to: | [![Apache Spark](https://img.shields.io/badge/Apache%20Spark%202/3-black?style=for-the-badge&logo=apachespark&logoColor=e25a1c)](https://spark.apache.org/)|
-|-:|:-|
-|Language: | [![Scala](https://img.shields.io/badge/scala%202.12/2.13-black.svg?style=for-the-badge&logo=scala&logoColor=DC322F)](https://www.scala-lang.org/)|
-|CI: | [![GitHub Actions](https://img.shields.io/badge/github%20actions-black.svg?style=for-the-badge&logo=githubactions&logoColor=2671E5)](https://docs.github.com/pt/actions)|
-|Public distribution:|[![Sonartype](https://img.shields.io/badge/sonatype%20nexus-black?style=for-the-badge&logo=sonatype&logoColor=05bb6e)](https://help.sonatype.com/en/sonatype-nexus-repository.html)|
-
-The source code compiles and runs in these Scala versions:
-
-|            | Compiles | Runs |
-|------------|:--------:|:----:|
-| Scala 2.12 | ✅       | ✅    |
-| Scala 2.13 | ✅       | ✅    |
-| Scala 3    | ❌       | ✅    |
-
-### Current class diagram
-
-```mermaid
-classDiagram
-    direction RL
-
-    class ProcFileMetricCollector{
-      #String procFilePath
-
-      +getMetricValue(String procFileContent,String originalMetricName) Any
-      +defaultPathGetter(String s1, String s2) Path
-      +getProcFileContent(String path_getter, String file_reader) String
-    }
-
-    class MeminfoMetricCollector{
-      #String procFilePath
-
-      +getMetricValue(String procFileContent,String originalMetricName) Long
-    }
-    MeminfoMetricCollector --|> ProcFileMetricCollector
-
-    class StatMetricCollector{
-      #String procFilePath
-
-      +getMetricValue(String procFileContent,String originalMetricName) Long
-    }
-    StatMetricCollector --|> ProcFileMetricCollector
-
-    class MemoryMetrics{
-      +Map metricMapping
-
-      +registerMetric(MetricRegistry metricRegistry, String metricName, Metric metricInstance ) Unit
-    }
-    MemoryMetrics --|> MeminfoMetricCollector
-
-    class CPUMetrics{
-      +Map metricMapping
-
-      +registerMetric(MetricRegistry metricRegistry, String metricName, Metric metricInstance ) Unit
-    }
-    CPUMetrics --|> StatMetricCollector
-```
-
-## Prior art
-
-`Spark Resources Metrics plugin` is inspired by [cerndb/SparkPlugins](https://github.com/cerndb/SparkPlugins) and [LucaCanali/sparkMeasure](https://github.com/LucaCanali/sparkMeasure).
-
-Conceptually, `Spark Resources Metrics plugin` is very similar to [SparkPlugins](https://github.com/cerndb/SparkPlugins), but:
-
-1. It aims to collect metrics that other less supported metric systems used to cover, like Ganglia;
-2. It is modular for each resource, being more complete and flexible to use;
-3. It is more easily extensible, with its development considering design patterns and unit tests.
 
 ## Next steps
 
