@@ -40,6 +40,8 @@ Turn on the transmitter
 6. Click "DOWN" until reaching "Aux, channels", click "OK"
 7. Click "OK" until reaching Channel 7, while arrows are point at Channel 7 and Source, click "DOWN" until Source is SwA, click "OK". Repeat for Channel 8, 9 and 10, each corresponding to SwB, SwC, SwD, respectively. **Long hold "Cancel" button to save everything**
 
+This sets the switches from left to right, to AUX3, 4, 5, and 6, the left spin knob to AUX1, and right spin knob to AUX2, in betaflight.
+
 ### Betaflight setup
 Open Betaflight app https://app.betaflight.com/ and connect to the flight controller through the on board usb-c port
 
