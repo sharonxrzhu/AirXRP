@@ -22,6 +22,7 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
   - [2.1 - Drone API](#drone-api)
   - [2.2 - GPS](#gps)
 - [Import Dependencies Diagram](#import-dependencies-diagram)
+- [Developer Guide](#developer-guide)
 - [Debug](#debug)
 
 ## Prelude - Hardware
@@ -145,6 +146,8 @@ AirXRP also supports a GPS module using gps.py
 
 GPS is intended primarily for larger-scale position and waypoint behaviors, while OpenMV optical flow provides faster local motion correction near the ground.
 
+GPS is not very accurate in the z direction, but relatively accurate in the x and y direction, with drifting that happens overtime.
+
 Current GPS functions include:
 - get_location() — returns latitude, longitude, and altitude
 - set_origin() — saves the current GPS location as x = 0, y = 0, z = 0
@@ -168,6 +171,10 @@ while True:
     else:
         print("No GPS position")
 ```
+where 
+- +x = East
+- +y = North
+- +z = Up
 
 ## Import Dependencies Diagram
 
@@ -198,3 +205,71 @@ flowchart TD
 
 - plug usb-c cable into openmv camera port for a few seconds and plug ucb-c cable back into xrp. This should reset the code in the openmv camera for it to run again.
 
+## Developer Guide
+
+### Order of RC Channels
+
+Betaflight uses RC channel mapping of AETR1234 order
+
+- A = Aileron = Roll
+- E = Elevator = Pitch
+- T = Throttle
+- R = Rudder = Yaw
+- 1 = AUX1
+- 2 = AUX2
+- 3 = AUX3
+- 4 = AUX4
+... (continues on to AUX5 and AUX6 but just not included in the name)
+
+So when sending raw RC values to Betaflight with MSP_SET_RAW_RC, the values should be sent in this order:
+
+```python
+[
+    roll,
+    pitch,
+    throttle,
+    yaw,
+    aux1,
+    aux2,
+    aux3,
+    aux4,
+]
+```
+
+> :exclamation: One important distinction is that this raw AETR1234 order does not necessarily match the order returned by MSP_RC. In the current AirXRP setup, MSP_RC is read in Betaflight's logical order:
+
+Roll, Pitch, Yaw, Throttle, AUX1, AUX2, AUX3, ...
+
+So for example:
+
+rc[3] is the throttle value when reading MSP_RC, even though throttle is the third channel when sending MSP_SET_RAW_RC.
+
+### MSP Override Mask Channels
+
+msp_override_channels_mask tells Betaflight which RC channels are allowed to be replaced by MSP commands when MSP Override mode is active.
+
+Each channel corresponds to one bit:
+
+| Bit | Value | Channel in AETR1234 raw order |
+|---:|---:|---|
+| 0 | 1 | Roll / Aileron |
+| 1 | 2 | Pitch / Elevator |
+| 2 | 4 | Throttle |
+| 3 | 8 | Yaw / Rudder |
+| 4 | 16 | AUX1 |
+| 5 | 32 | AUX2 |
+| 6 | 64 | AUX3 |
+| 7 | 128 | AUX4 |
+
+To override multiple channels, add the corresponding values together.
+
+For example:
+
+- 1 = Roll only
+- 2 = Pitch only
+- 3 = Roll + Pitch
+- 4 = Throttle only
+- 7 = Roll + Pitch + Throttle
+- 8 = Yaw only
+- 11 = Roll + Pitch + Yaw
+- 15 = Roll + Pitch + Throttle + Yaw
