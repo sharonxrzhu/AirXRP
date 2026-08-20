@@ -10,12 +10,10 @@
 AirXRP is an educational quadcopter platform built around the SparkFun XRP Controller and Betaflight. The goal is to give students a simple Python interface for programming autonomous drone behaviors without requiring them to develop a flight-control system from scratch.
 
 ## Table of Contents
-
+- [Prelude-Hardware](#hardware)
 - [User Guide](#user-guide)
-  - [Hardware](#harware)
   - [Drone API](#drone-api)
-    - [Package](#package)
-    - [Classes](#classes)
+  - [Camera Axis Calibration](#cam-calibration)
   - [Usage](#usage)
     - [Current plugin classes](#current-plugin-classes)
   - [Example instrumentation: Graphite sink](#example-instrumentation-graphite-sink)
@@ -27,41 +25,73 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
   - [Use it on different Spark environments](#use-it-on-different-spark-environments)
   - [Support](#support)
 
-| *Releases* | Scala 2.12 | Scala 2.13 |
-|:---------- | :--------: | :--------: |
-| Maven Central | [![Maven Central (Latest Release for Scala 2.12)](https://img.shields.io/maven-central/v/io.github.dutrevis/spark-resources-metrics-plugin_2.12.svg?label=maven%20central&color=6d3eed)](https://central.sonatype.com/artifact/io.github.dutrevis/spark-resources-metrics-plugin_2.12) | [![Maven Central (Latest Release for Scala 2.13)](https://img.shields.io/maven-central/v/io.github.dutrevis/spark-resources-metrics-plugin_2.13.svg?label=maven%20central&color=6d3eed)](https://central.sonatype.com/artifact/io.github.dutrevis/spark-resources-metrics-plugin_2.13) |
-| Sonatype Nexus | [![Sonatype Nexus (Latest Release for Scala 2.12)](https://img.shields.io/nexus/r/io.github.dutrevis/spark-resources-metrics-plugin_2.12.svg?server=https://s01.oss.sonatype.org&color=05bb6e)](https://s01.oss.sonatype.org/content/repositories/releases/io/github/dutrevis/spark-resources-metrics-plugin_2.12/) | [![Sonatype Nexus (Latest Release for Scala 2.13)](https://img.shields.io/nexus/r/io.github.dutrevis/spark-resources-metrics-plugin_2.13.svg?server=https://s01.oss.sonatype.org&color=05bb6e)](https://s01.oss.sonatype.org/content/repositories/releases/io/github/dutrevis/spark-resources-metrics-plugin_2.13/) |
-| Snapshot | [![Sonatype Nexus (Latest Snapshot for Scala 2.12)](https://img.shields.io/nexus/s/io.github.dutrevis/spark-resources-metrics-plugin_2.12.svg?server=https://s01.oss.sonatype.org&color=05bb6e)](https://s01.oss.sonatype.org/content/repositories/snapshots/io/github/dutrevis/spark-resources-metrics-plugin_2.12/) | [![Sonatype Nexus (Latest Snapshot for Scala 2.13)](https://img.shields.io/nexus/s/io.github.dutrevis/spark-resources-metrics-plugin_2.13.svg?server=https://s01.oss.sonatype.org&color=05bb6e)](https://s01.oss.sonatype.org/content/repositories/snapshots/io/github/dutrevis/spark-resources-metrics-plugin_2.13/) |
-
-## User Guide
-
-### Hardware
+## Prelude - Hardware
 Before starting on this software guide, make sure to follow: https://www.printables.com/model/1707431-airxrp-alpha-xrp-powered-3d-printed-quadcopter for the hardware assembly of the AirXRP.
 
+## Software User Guide
+
+### Step 1: MSP Override Test
+XRP controls the drone through Betaflight MSP Override. We want to make sure the drone is setup properly to communicate between the XRP the flight controller.
+
+Run msp_test.py and if you get 
+
+
+
 ### Drone API
-The Drone class provides the student-facing interface.
+The Drone class provides the student-facing interface. It can be found in fc.py.
 Current movement functions include:
-move_forward()
-move_backward()
-move_left()
-move_right()
-hover() (with manual control of throttle)
+- move_forward()
+- move_backward()
+- move_left()
+- move_right()
+- hover() (with manual control of throttle)
 
 Example:
+```python
 from drone import Drone
 
 drone = Drone(
     hover_throttle=1500,
 )
-
+    
 drone.move_forward(
     speed=0.3,
     duration=1.0,
 )
-
+    
 drone.hover(
     duration=5.0,
 )
+```
+
+### Camera Axis Calibration
+The OpenMV may be mounted in different orientations, so AirXRP does not assume camera X/Y correspond directly to aircraft roll/pitch.
+Before hover() is used, run: airxrp_openmv_axis_calibrate.py
+
+The calibration procedure is:
+Hold the drone level and still.
+Move the entire aircraft approximately 10–20 cm to its physical right.
+Return it and hold still.
+Move the aircraft approximately 10–20 cm forward.
+Keep the aircraft level and avoid yawing it.
+The script determines the transformation from camera coordinates into aircraft body coordinates and writes:
+/openmv_axis_calibration.txt 
+
+**Make sure /openmv_axis_calibration.txt is saved in the XRP before running hover()**
+
+The file contains values such as:
+inverse_00
+inverse_01
+inverse_10
+inverse_11
+valid=1
+
+These values convert camera motion into:
+positive body_right
+positive body_forward
+
+The calibration only needs to be repeated if the camera mounting orientation changes.
+
 
 
 #### Package
