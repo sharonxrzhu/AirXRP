@@ -21,7 +21,7 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
 - [Chapter 2 - Functions to Use](#chapter-2---functions-to-use)
   - [2.1 - Drone API](#drone-api)
   - [2.2 - GPS](#gps)
-- [System Architecture](#developer-guide)
+- [Import Dependencies Diagram](#import-dependencies-diagram)
   - [Stack used](#stack-used)
   - [Current class diagram](#current-class-diagram)
 - [Developer-Guide](#prior-art)
@@ -168,7 +168,19 @@ while True:
         print("No GPS position")
 ```
 
-## System Architecture
+## Import Dependencies Diagram
 
+```mermaid
+flowchart TD
+    Student["student.py"]
+    FC["fc.py"]
+    GPS["gps.py"]
+    Hover["hover.py"]
+    MSP["msp.py"]
 
-## Next steps
+    Student --> FC
+    Student --> GPS
+    FC --> Hover
+    Hover --> MSP
+    GPS --> MSP
+```
