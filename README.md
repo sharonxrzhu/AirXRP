@@ -12,9 +12,8 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
 ## Table of Contents
 
 - [User Guide](#user-guide)
-  - [Preparation](#preparation)
-    - [Hardware](#harware)
-  - [Installation](#installation)
+  - [Hardware](#harware)
+  - [Drone API](#drone-api)
     - [Package](#package)
     - [Classes](#classes)
   - [Usage](#usage)
@@ -36,12 +35,34 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
 
 ## User Guide
 
-### Preparation
-
-#### Hardware
+### Hardware
 Before starting on this software guide, make sure to follow: https://www.printables.com/model/1707431-airxrp-alpha-xrp-powered-3d-printed-quadcopter for the hardware assembly of the AirXRP.
 
-### Installation
+### Drone API
+The Drone class provides the student-facing interface.
+Current movement functions include:
+move_forward()
+move_backward()
+move_left()
+move_right()
+hover() (with manual control of throttle)
+
+Example:
+from drone import Drone
+
+drone = Drone(
+    hover_throttle=1500,
+)
+
+drone.move_forward(
+    speed=0.3,
+    duration=1.0,
+)
+
+drone.hover(
+    duration=5.0,
+)
+
 
 #### Package
 
