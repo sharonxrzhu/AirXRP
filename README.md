@@ -39,7 +39,7 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
 ### Preparation
 
 #### Hardware
-Before starting on this software guide, make sure to follow: <a href="[https://github.com/dutrevis/spark-resources-metrics-plugin](https://www.printables.com/model/1707431-airxrp-alpha-xrp-powered-3d-printed-quadcopter)"</a> for the hardware assembly of the AirXRP.
+Before starting on this software guide, make sure to follow: https://www.printables.com/model/1707431-airxrp-alpha-xrp-powered-3d-printed-quadcopter for the hardware assembly of the AirXRP.
 
 ### Installation
 
