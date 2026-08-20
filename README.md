@@ -26,6 +26,8 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
   - [No response from msp override](#no-response-from-msp-override)
   - [Openmv camera not found at 0x42](#openmv-camera-not-found-at-0x42)
 - [Developer Guide](#developer-guide)
+  - [Order of RC Channels](#order-of-rc-channels)
+  - [MSP Override Mask Channels](#msp-override-mask-channels)
 
 ## Prelude - Hardware
 Before starting on this software guide, make sure to follow: https://www.printables.com/model/1707431-airxrp-alpha-xrp-powered-3d-printed-quadcopter for the hardware assembly of the AirXRP.
