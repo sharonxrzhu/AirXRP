@@ -22,9 +22,7 @@ AirXRP is an educational quadcopter platform built around the SparkFun XRP Contr
   - [2.1 - Drone API](#drone-api)
   - [2.2 - GPS](#gps)
 - [Import Dependencies Diagram](#import-dependencies-diagram)
-  - [Stack used](#stack-used)
-  - [Current class diagram](#current-class-diagram)
-- [Developer-Guide](#prior-art)
+- [Debug](#debug)
 
 ## Prelude - Hardware
 Before starting on this software guide, make sure to follow: https://www.printables.com/model/1707431-airxrp-alpha-xrp-powered-3d-printed-quadcopter for the hardware assembly of the AirXRP.
@@ -89,7 +87,6 @@ This means your hardware setup is correct and ready to go
 
 If you receive:
 "No response"
-Make sure all wires are plugged into the right ports and flight controller is powered on
 Check out [Debug](#debug)
 
 ### Camera Axis Calibration
@@ -184,3 +181,16 @@ flowchart TD
     Hover --> MSP
     GPS --> MSP
 ```
+
+## Debug
+
+### no response from msp override
+
+- Make sure flight controller is powered on
+- Make sure UART4 in Betaflight is enabled for Configuration/MSP
+- Unplug and replug in wire from xrp to flight controller, make sure all wires are connected. Often times it is a physical connection problem
+
+### openmv camera not found at 0x42
+
+- plug usb-c cable into openmv camera port for a few seconds and plug ucb-c cable back into xrp. This should reset the code in the openmv camera for it to run again.
+
